@@ -241,7 +241,7 @@ def main_menu():
 
 def choose_weapon():
     holy_sword_chance = random.random()
-    if holy_sword_chance < 0.01:
+    if holy_sword_chance < 0.1:
         print("** คุณได้รับอาวุธพิเศษ Holy sword! **")
         return Weapon("Holy sword", 10000, 0, 999)
     weapons = [
