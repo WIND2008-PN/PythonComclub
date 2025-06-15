@@ -1,7 +1,6 @@
 # PlayerBattleGame.py
 import random
 import sys
-
 class Weapon:
     def __init__(self, name, atk_bonus, mana_bonus, mana_cost):
         self.name = name
@@ -21,6 +20,7 @@ class NPC:
         self.ult_active = False
         self.last_action = None
         self.dash_success = False
+        self.status = {}
 
     def attack(self, target, atk_type="normal", extra_atk=0):
         if self.hp <= 0:
@@ -33,7 +33,7 @@ class NPC:
             print(f"{target.name} has already been defeated!")
             return
 
-        self.mana -= random.randint(10, 100)
+        self.mana -= 5
         damage = random.randint(40, 100) + extra_atk
 
         # Enemy attack type
@@ -104,6 +104,7 @@ class Player(NPC):
         self.dash_success = False
         self.ult_ready = False
         self.ult_active = False
+        self.status = {}
 
     def attack(self, target, atk_type="normal", extra_atk=0):
         if self.hp <= 0:
@@ -121,6 +122,22 @@ class Player(NPC):
 
         self.mana -= mana_cost
         damage = 40 + self.weapon.atk_bonus + extra_atk
+
+        # หมัด: 1% โจมตี 9999999
+        if self.weapon.name == "หมัด" and random.random() < 0.01:
+            damage = 9999999
+            print("** พลังหมัดมหาประลัย! โจมตี 9999999 **")
+
+        # ดาบ: 20% เพิ่ม mana 100
+        if self.weapon.name == "ดาบ" and random.random() < 0.2:
+            self.mana += 100
+            print("** ดาบฟื้นฟูมานา +100 **")
+
+        # ธนู: 20% หลบการโจมตีศัตรูรอบถัดไป
+        if self.weapon.name == "ธนู" and random.random() < 0.2:
+            self.status["bow_evasion"] = True
+            print("** ธนู: คุณจะหลบการโจมตีศัตรูรอบถัดไป **")
+
         if self.ult_active:
             damage += 500
             print(f"ท่าไม้ตาย! เพิ่มพลังโจมตี +500 และ +1000 HP")
@@ -139,6 +156,27 @@ class Player(NPC):
                 target.dash_success = False
                 return
 
+        # Goblin: 10% หลบ
+        if target.name == "Goblin" and random.random() < 0.1:
+            print("Goblin หลบการโจมตีของคุณได้!")
+            return
+
+        # Orc: 10% บัฟโกรธ
+        if target.name == "Orc" and random.random() < 0.1:
+            target.status["rage"] = True
+            print("Orc โกรธ! การโจมตีรอบถัดไปแรงขึ้น!")
+
+        # Giant: 15% ลด mana ผู้เล่น 50
+        if target.name == "Giant" and random.random() < 0.15:
+            self.mana = max(0, self.mana - 50)
+            print("Giant โจมตีและลด Mana ของคุณ 50!")
+
+        # Dragon: 10% พ่นไฟนรกเดือด
+        if target.name == "Dragon" and random.random() < 0.1:
+            print("Dragon ใช้ท่า 'พ่นไฟนรกเดือด'! คุณเสีย HP 500 และติดสถานะไฟนรกไหม้")
+            self.hp -= 500
+            self.status["hellfire"] = True
+
         target.hp -= damage
         if target.hp < 0:
             target.hp = 0
@@ -148,7 +186,7 @@ class Player(NPC):
         if self.hp <= 0:
             print(f"{self.name} cannot heal. No HP left!")
             return
-        heal_amount = random.randint(30, 100)
+        heal_amount = random.randint(30, 300)
         self.hp += heal_amount
         print(f"{self.name} heals for {heal_amount} HP! Current HP: {self.hp}")
 
@@ -170,6 +208,10 @@ class Player(NPC):
             mana_gain = random.randint(40, 100)
             self.hp += hp_gain
             self.mana += mana_gain
+            # ลบสถานะไฟนรกไหม้
+            if self.status.get("hellfire"):
+                print("คุณพักผ่อนและหายจากสถานะไฟนรกไหม้!")
+                self.status.pop("hellfire")
             print(f"{self.name} rests and recovers {hp_gain} HP and {mana_gain} Mana! Current HP: {self.hp}, Mana: {self.mana}")
         else:
             print(f"{self.name} cannot rest. Resting state is not enabled.")
@@ -214,29 +256,44 @@ def choose_weapon():
     choice = input("เลือกอาวุธ (1-3): ")
     return weapons[int(choice)-1]
 
-# ระบบสุ่มศัตรู
+# ระบบสุ่มศัตรู (40/20/15/10/5)
 def random_enemy():
     enemies = [
-        ("Goblin", 12000, 4000, 0.3),
-        ("Orc", 20000, 3000, 0.2),
-        ("Giant", 40000, 5000, 0.1),
-        ("Dragon", 1200000, 40000, 0.05),
-        ("God", 9999999, 999999, 0.001)
+        ("Goblin", 12000, 4000, 0.3, 0.40),
+        ("Orc", 20000, 3000, 0.2, 0.20),
+        ("Giant", 40000, 5000, 0.1, 0.15),
+        ("Dragon", 1200000, 40000, 0.05, 0.10),
+        ("God", 9999999, 999999, 0.001, 0.05)
     ]
-    idx = random.randint(0, len(enemies)-1)
-    name, hp, mana, escape_chance = enemies[idx]
+    r = random.random()
+    if r < 0.40:
+        idx = 0
+    elif r < 0.60:
+        idx = 1
+    elif r < 0.75:
+        idx = 2
+    elif r < 0.85:
+        idx = 3
+    else:
+        idx = 4
+    name, hp, mana, escape_chance, _ = enemies[idx]
     print(f"คุณพบกับศัตรู: {name} (HP: {hp}, Mana: {mana})")
     return NPC(name, hp, mana, True), escape_chance
 
 # เริ่มเกม
 if main_menu():
     weapon = choose_weapon()
-    player = Player("Player", 1100, 150 + weapon.mana_bonus, True, weapon)
+    player = Player("Player", 10000, 1000 + weapon.mana_bonus, True, weapon)
     enemy, escape_chance = random_enemy()
     enemy.last_action = None
     enemy.dash_success = False
 
     while player.hp > 0 and enemy.hp > 0:
+        # สถานะไฟนรกไหม้
+        if player.status.get("hellfire"):
+            player.hp -= 5
+            print("ไฟนรกไหม้! คุณเสีย HP 5 (พักผ่อนเพื่อหาย)")
+
         print(f"\n{player.name} (HP: {player.hp}, Mana: {player.mana})")
         print(f"{enemy.name} (HP: {enemy.hp}, Mana: {enemy.mana})")
 
@@ -253,13 +310,15 @@ if main_menu():
         action = input("เลือกการกระทำของ Player: ")
         player.last_action = None
 
+        # ธนู: หลบการโจมตีศัตรูรอบถัดไป
+        bow_evasion = player.status.pop("bow_evasion", False)
+
         if action == "0":
             if random.random() < escape_chance:
                 print("คุณหนีสำเร็จ! จบเกม")
                 sys.exit()
             else:
                 print("หนีไม่สำเร็จ! ศัตรูโจมตีฟรี!")
-                # Enemy โจมตีฟรี
                 enemy_action = random.choice(["stab", "slash", "pierce"])
                 enemy.attack(player, atk_type=enemy_action)
                 if player.hp <= 0:
@@ -295,7 +354,23 @@ if main_menu():
         # Enemy เลือกสุ่มการกระทำ
         enemy_action = random.choice(["stab", "slash", "pierce"])
         enemy.last_action = None
-        enemy.attack(player, atk_type=enemy_action)
+
+        # Orc: บัฟโกรธ
+        extra_atk = 0
+        if enemy.name == "Orc" and enemy.status.get("rage"):
+            extra_atk = 200
+            print("Orc โกรธ! การโจมตีแรงขึ้น +200")
+            enemy.status.pop("rage")
+
+        # Giant: 15% โจมตีและลด Mana ผู้เล่น 50 (ใน attack ของ player แล้ว)
+
+        # Dragon: พ่นไฟนรกเดือด (ใน attack ของ player แล้ว)
+
+        # ธนู: หลบการโจมตีศัตรูรอบถัดไป
+        if bow_evasion:
+            print("คุณหลบการโจมตีของศัตรูด้วยธนู!")
+        else:
+            enemy.attack(player, atk_type=enemy_action, extra_atk=extra_atk)
 
         if player.hp <= 0:
             print(f"{player.name} พ่ายแพ้แล้ว!")
