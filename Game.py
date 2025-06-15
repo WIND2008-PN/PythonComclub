@@ -1,6 +1,7 @@
-# PlayerBattleGame.py
+# -*- coding: utf-8 -*-
 import random
 import sys
+
 class Weapon:
     def __init__(self, name, atk_bonus, mana_bonus, mana_cost):
         self.name = name
@@ -176,7 +177,6 @@ class Player(NPC):
             print("Dragon ใช้ท่า 'พ่นไฟนรกเดือด'! คุณเสีย HP 500 และติดสถานะไฟนรกไหม้")
             self.hp -= 500
             self.status["hellfire"] = True
-        
 
         target.hp -= damage
         if target.hp < 0:
@@ -225,7 +225,6 @@ class Player(NPC):
         print("ท่าไม้ตายจะถูกใช้ในการโจมตีครั้งถัดไป!")
         return True
 
-# ระบบเริ่มเกม/ออกเกม
 def main_menu():
     print("==== เกมต่อสู้ ====")
     print("1. เริ่มเกม")
@@ -240,7 +239,6 @@ def main_menu():
         print("กรุณาเลือก 1 หรือ 2")
         return main_menu()
 
-# ระบบสุ่มอาวุธ
 def choose_weapon():
     holy_sword_chance = random.random()
     if holy_sword_chance < 0.01:
@@ -257,7 +255,6 @@ def choose_weapon():
     choice = input("เลือกอาวุธ (1-3): ")
     return weapons[int(choice)-1]
 
-# ระบบสุ่มศัตรู (40/20/15/10/5)
 def random_enemy():
     enemies = [
         ("Goblin", 12000, 4000, 0.3, 0.40),
@@ -281,9 +278,8 @@ def random_enemy():
     print(f"คุณพบกับศัตรู: {name} (HP: {hp}, Mana: {mana})")
     return NPC(name, hp, mana, True), escape_chance
 
-# เริ่มเกม
 if main_menu():
-    layer_name = input("กรุณากรอกชื่อตัวละครของคุณ: ")
+    player_name = input("กรุณากรอกชื่อตัวละครของคุณ: ")
     weapon = choose_weapon()
     player = Player(player_name, 10000, 1000 + weapon.mana_bonus, True, weapon)
     enemy, escape_chance = random_enemy()
@@ -363,6 +359,7 @@ if main_menu():
             extra_atk = 200
             print("Orc โกรธ! การโจมตีแรงขึ้น +200")
             enemy.status.pop("rage")
+
         # God: 99% แพ้ทันที, 1% ชนะทันที
         if enemy.name == "God":
             god_roll = random.random()
@@ -374,10 +371,6 @@ if main_menu():
                 print("ปาฏิหาริย์! คุณเอาชนะ God ได้ทันที!!")
                 enemy.hp = 0
                 break
-
-        # Giant: 15% โจมตีและลด Mana ผู้เล่น 50 (ใน attack ของ player แล้ว)
-
-        # Dragon: พ่นไฟนรกเดือด (ใน attack ของ player แล้ว)
 
         # ธนู: หลบการโจมตีศัตรูรอบถัดไป
         if bow_evasion:
