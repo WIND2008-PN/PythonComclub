@@ -1,14 +1,23 @@
-## Game Goblin vs Enemy
+## Game Player vs Enemy
 import random
+
+class Weapon:
+    def __init__(self, name, atk_bonus, mana_bonus, mana_cost):
+        self.name = name
+        self.atk_bonus = atk_bonus
+        self.mana_bonus = mana_bonus
+        self.mana_cost = mana_cost
 
 class NPC:
     def __init__(self, name, hp, mana, can_rest):
         self.name = name
         self.hp = hp
         self.mana = mana
-        self.can_rest = can_rest  # เปลี่ยนชื่อ attribute
+        self.can_rest = can_rest
+        self.is_defending = False
+        self.is_dashing = False
 
-    def attack(self, target):
+    def attack(self, target, atk_type="normal"):
         if self.hp <= 0:
             print(f"{self.name} cannot attack. No HP left!")
             return
@@ -18,12 +27,44 @@ class NPC:
         if target.hp <= 0:
             print(f"{target.name} has already been defeated!")
             return
-        
+
         self.mana -= 5
-        target.hp -= 40
+        damage = 40
+
+        # Enemy attack type
+        if atk_type == "stab":
+            print(f"{self.name} ใช้ท่า 'แทง'!")
+        elif atk_type == "slash":
+            print(f"{self.name} ใช้ท่า 'ฟัน'!")
+        elif atk_type == "pierce":
+            print(f"{self.name} ใช้ท่า 'ทะลุ'!")
+
+        # Player defend/dash logic
+        if hasattr(target, "last_action"):
+            if atk_type == "stab":
+                if target.last_action == "dash":
+                    if target.dash_success:
+                        print(f"{target.name} หลบการแทงได้!")
+                        return
+                print(f"{target.name} ไม่สามารถป้องกันการแทงได้!")
+            elif atk_type == "slash":
+                if target.last_action == "defend":
+                    damage = int(damage * 0.4)
+                    print(f"{target.name} ป้องกันการฟัน! ความเสียหายลดลงเหลือ {damage}")
+                elif target.last_action == "dash":
+                    print(f"{target.name} ไม่สามารถหลบการฟันได้!")
+            elif atk_type == "pierce":
+                if target.last_action == "dash" and target.dash_success:
+                    print(f"{target.name} หลบการทะลุได้!")
+                    return
+                print(f"{target.name} ไม่สามารถป้องกันการทะลุได้!")
+            # reset dash success
+            target.dash_success = False
+
+        target.hp -= damage
         if target.hp < 0:
             target.hp = 0
-        print(f"{self.name} attacks {target.name}! {target.name} HP: {target.hp}")
+        print(f"{self.name} โจมตี {target.name}! {target.name} HP: {target.hp}")
 
     def heal(self):
         if self.hp <= 0:
@@ -33,15 +74,12 @@ class NPC:
         print(f"{self.name} heals for 10 HP! Current HP: {self.hp}")
 
     def defend(self):
-        if self.hp <= 0:
-            print(f"{self.name} cannot defend. No HP left!")
-            return
-        if self.mana < 5:
-            print(f"{self.name} cannot defend. Not enough mana!")
-            return
-        self.mana -= 5
-        self.hp += 20
+        self.is_defending = True
         print(f"{self.name} is defending this turn!")
+
+    def dash(self):
+        self.is_dashing = True
+        print(f"{self.name} พยายาม Dash หลบการโจมตี!")
 
     def rest(self):
         if self.can_rest:
@@ -51,26 +89,42 @@ class NPC:
         else:
             print(f"{self.name} cannot rest. Resting state is not enabled.")
 
-class PLAYER(NPC):
-    def __init__(self, name, hp, mana, can_rest):
+class Player(NPC):
+    def __init__(self, name, hp, mana, can_rest, weapon):
         super().__init__(name, hp, mana, can_rest)
+        self.weapon = weapon
+        self.last_action = None
+        self.dash_success = False
 
-    def attack(self, target):
+    def attack(self, target, atk_type="normal"):
         if self.hp <= 0:
             print(f"{self.name} cannot attack. No HP left!")
             return
-        if self.mana < 10:
+        if self.mana < self.weapon.mana_cost:
             print(f"{self.name} cannot attack. Not enough mana!")
             return
         if target.hp <= 0:
             print(f"{target.name} has already been defeated!")
             return
-        
-        self.mana -= 10
-        target.hp -= 40
+
+        self.mana -= self.weapon.mana_cost
+        damage = 40 + self.weapon.atk_bonus
+        print(f"{self.name} โจมตีด้วย {self.weapon.name}! (ATK+{self.weapon.atk_bonus}, Mana Cost {self.weapon.mana_cost})")
+
+        # Enemy defend/dash logic
+        if hasattr(target, "last_action"):
+            if target.last_action == "defend":
+                damage = int(damage * 0.4)
+                print(f"{target.name} ป้องกัน! ความเสียหายลดลงเหลือ {damage}")
+            elif target.last_action == "dash" and target.dash_success:
+                print(f"{target.name} หลบการโจมตีได้!")
+                target.dash_success = False
+                return
+
+        target.hp -= damage
         if target.hp < 0:
             target.hp = 0
-        print(f"{self.name} attacks {target.name}! {target.name} HP: {target.hp}")
+        print(f"{self.name} โจมตี {target.name}! {target.name} HP: {target.hp}")
 
     def heal(self):
         if self.hp <= 0:
@@ -80,15 +134,16 @@ class PLAYER(NPC):
         print(f"{self.name} heals for 20 HP! Current HP: {self.hp}")
 
     def defend(self):
-        if self.hp <= 0:
-            print(f"{self.name} cannot defend. No HP left!")
-            return
-        if self.mana < 5:
-            print(f"{self.name} cannot defend. Not enough mana!")
-            return
-        self.mana -= 5
-        self.hp += 20
+        self.last_action = "defend"
         print(f"{self.name} is defending this turn!")
+
+    def dash(self):
+        self.last_action = "dash"
+        self.dash_success = random.random() < 0.4
+        if self.dash_success:
+            print(f"{self.name} Dash สำเร็จ! มีโอกาสหลบการโจมตี 100% ในรอบนี้")
+        else:
+            print(f"{self.name} Dash ไม่สำเร็จ!")
 
     def rest(self):
         if self.can_rest:
@@ -98,41 +153,64 @@ class PLAYER(NPC):
         else:
             print(f"{self.name} cannot rest. Resting state is not enabled.")
 
-# status
-npc1 = NPC("Goblin", 100, 50, True) # atk 40 / heal +10 / mana -5
-npc2 = PLAYER("Enemy", 120, 30, True) # atk 40 / heal +20 / mana -10
+# เลือกอาวุธ
+weapons = [
+    Weapon("หมัด", 90, 900, 0),
+    Weapon("ดาบ", 450, 300, 20),
+    Weapon("ธนู", 150, 700, 30)
+]
+print("เลือกอาวุธ:")
+for i, w in enumerate(weapons, 1):
+    print(f"{i}. {w.name} (ATK+{w.atk_bonus}, Mana+{w.mana_bonus}, Mana Cost {w.mana_cost}/attack)")
+choice = input("เลือกอาวุธ (1-3): ")
+weapon = weapons[int(choice)-1]
 
-while npc1.hp > 0 and npc2.hp > 0:
-    print(f"\n{npc1.name} (HP: {npc1.hp}, Mana: {npc1.mana})")
-    print(f"{npc2.name} (HP: {npc2.hp}, Mana: {npc2.mana})")
-    action = input("เลือกการกระทำของ Goblin (1=โจมตี, 2=heal, 3=ป้องกัน , 4=พักผ่อน): ")
+# status
+player = Player("Player", 1100, 150 + weapon.mana_bonus, True, weapon)
+enemy = NPC("Enemy", 12000, 300, True)
+enemy.last_action = None
+enemy.dash_success = False
+
+while player.hp > 0 and enemy.hp > 0:
+    print(f"\n{player.name} (HP: {player.hp}, Mana: {player.mana})")
+    print(f"{enemy.name} (HP: {enemy.hp}, Mana: {enemy.mana})")
+    print("1=โจมตี, 2=heal, 3=ป้องกัน, 4=พักผ่อน, 5=Dash หลบ")
+    action = input("เลือกการกระทำของ Player: ")
+    player.last_action = None
     if action == "1":
-        npc1.attack(npc2)
+        player.attack(enemy)
+        player.last_action = "attack"
     elif action == "2":
-        npc1.heal()
+        player.heal()
+        player.last_action = "heal"
     elif action == "3":
-        npc1.defend()
+        player.defend()
     elif action == "4":
-        npc1.rest()
+        player.rest()
+        player.last_action = "rest"
+    elif action == "5":
+        player.dash()
     else:
-        print("การกระทำไม่ถูกต้อง กรุณาเลือก 1, 2 , 3 หรือ 4")
+        print("การกระทำไม่ถูกต้อง กรุณาเลือก 1-5")
         continue
-    
-    if npc2.hp <= 0:
-        print(f"{npc2.name} พ่ายแพ้แล้ว!")
+
+    if enemy.hp <= 0:
+        print(f"{enemy.name} พ่ายแพ้แล้ว!")
         break
 
     # Enemy เลือกสุ่มการกระทำ
-    enemy_action = random.choice(["1", "2", "3", "4"])
-    if enemy_action == "1":
-        npc2.attack(npc1)
-    elif enemy_action == "2":
-        npc2.heal()
-    elif enemy_action == "3":
-        npc2.defend()
-    elif enemy_action == "4":
-        npc2.rest()
+    enemy_action = random.choice(["stab", "slash", "pierce"])
+    enemy.last_action = None
+    if enemy_action == "stab":
+        enemy.attack(player, atk_type="stab")
+        enemy.last_action = "attack"
+    elif enemy_action == "slash":
+        enemy.attack(player, atk_type="slash")
+        enemy.last_action = "attack"
+    elif enemy_action == "pierce":
+        enemy.attack(player, atk_type="pierce")
+        enemy.last_action = "attack"
 
-    if npc1.hp <= 0:
-        print(f"{npc1.name} พ่ายแพ้แล้ว!")
+    if player.hp <= 0:
+        print(f"{player.name} พ่ายแพ้แล้ว!")
         break
