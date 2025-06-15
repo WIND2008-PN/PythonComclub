@@ -75,7 +75,7 @@ class NPC:
         if self.hp <= 0:
             print(f"{self.name} cannot heal. No HP left!")
             return
-        heal_amount = random.randint(30, 100)
+        heal_amount = random.randint(50, 500)
         self.hp += heal_amount
         print(f"{self.name} heals for {heal_amount} HP! Current HP: {self.hp}")
 
@@ -140,9 +140,9 @@ class Player(NPC):
             print("** ธนู: คุณจะหลบการโจมตีศัตรูรอบถัดไป **")
 
         if self.ult_active:
-            damage += 500
-            print(f"ท่าไม้ตาย! เพิ่มพลังโจมตี +500 และ +1000 HP")
-            self.hp += 1000
+            damage += 1000
+            print(f"ท่าไม้ตาย! เพิ่มพลังโจมตี +1000 และ +10000 HP")
+            self.hp += 10000
             self.ult_active = False
 
         print(f"{self.name} โจมตีด้วย {self.weapon.name}! (ATK+{self.weapon.atk_bonus}, Mana Cost {mana_cost})")
@@ -245,9 +245,9 @@ def choose_weapon():
         print("** คุณได้รับอาวุธพิเศษ Holy sword! **")
         return Weapon("Holy sword", 10000, 0, 999)
     weapons = [
-        Weapon("หมัด", 90, 900, 0),
-        Weapon("ดาบ", 450, 300, 20),
-        Weapon("ธนู", 150, 700, 30)
+        Weapon("หมัด", 900, 900, 50),
+        Weapon("ดาบ", 1400, 500, 200),
+        Weapon("ธนู", 2000, 700, 500)
     ]
     print("เลือกอาวุธ:")
     for i, w in enumerate(weapons, 1):
@@ -262,18 +262,32 @@ def random_enemy():
         ("Giant", 40000, 5000, 0.1, 0.15),
         ("Dragon", 1200000, 40000, 0.05, 0.10),
         ("God", 9999999, 999999, 0.001, 0.05)
-    ]
-    r = random.random()
-    if r < 0.40:
-        idx = 0
-    elif r < 0.60:
-        idx = 1
-    elif r < 0.75:
-        idx = 2
-    elif r < 0.85:
-        idx = 3
+    ]# ถ้าชื่อ God777 จะมีโอกาสเจอ God 90%
+    if player_name == "God777":
+        if random.random() < 0.9:
+            idx = 4
+        else:
+            r = random.random()
+            if r < 0.40:
+                idx = 0
+            elif r < 0.60:
+                idx = 1
+            elif r < 0.75:
+                idx = 2
+            elif r < 0.85:
+                idx = 3
     else:
-        idx = 4
+        r = random.random()
+        if r < 0.40:
+            idx = 0
+        elif r < 0.60:
+            idx = 1
+        elif r < 0.75:
+            idx = 2
+        elif r < 0.85:
+            idx = 3
+        else:
+            idx = 4
     name, hp, mana, escape_chance, _ = enemies[idx]
     print(f"คุณพบกับศัตรู: {name} (HP: {hp}, Mana: {mana})")
     return NPC(name, hp, mana, True), escape_chance
