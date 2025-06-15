@@ -1,3 +1,5 @@
+#Game: Goblin vs Player
+# This code simulates a turn-based battle between a Goblin (NPC) and a Player.
 class NPC:
     def __init__(self, name, hp, mana):
         self.name = name
