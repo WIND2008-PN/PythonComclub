@@ -176,6 +176,7 @@ class Player(NPC):
             print("Dragon ใช้ท่า 'พ่นไฟนรกเดือด'! คุณเสีย HP 500 และติดสถานะไฟนรกไหม้")
             self.hp -= 500
             self.status["hellfire"] = True
+        
 
         target.hp -= damage
         if target.hp < 0:
@@ -282,8 +283,9 @@ def random_enemy():
 
 # เริ่มเกม
 if main_menu():
+    layer_name = input("กรุณากรอกชื่อตัวละครของคุณ: ")
     weapon = choose_weapon()
-    player = Player("Player", 10000, 1000 + weapon.mana_bonus, True, weapon)
+    player = Player(player_name, 10000, 1000 + weapon.mana_bonus, True, weapon)
     enemy, escape_chance = random_enemy()
     enemy.last_action = None
     enemy.dash_success = False
@@ -361,6 +363,17 @@ if main_menu():
             extra_atk = 200
             print("Orc โกรธ! การโจมตีแรงขึ้น +200")
             enemy.status.pop("rage")
+        # God: 99% แพ้ทันที, 1% ชนะทันที
+        if enemy.name == "God":
+            god_roll = random.random()
+            if god_roll < 0.99:
+                print("God ใช้พลังเหนือธรรมชาติ! คุณแพ้ทันที...")
+                player.hp = 0
+                break
+            else:
+                print("ปาฏิหาริย์! คุณเอาชนะ God ได้ทันที!!")
+                enemy.hp = 0
+                break
 
         # Giant: 15% โจมตีและลด Mana ผู้เล่น 50 (ใน attack ของ player แล้ว)
 
